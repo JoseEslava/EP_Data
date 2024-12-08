@@ -1,8 +1,5 @@
 import streamlit as st
 import numpy as np
-import os
-
-from dotenv import load_dotenv
 
 from langchain.chains import RetrievalQA
 from langchain.document_loaders.csv_loader import CSVLoader
