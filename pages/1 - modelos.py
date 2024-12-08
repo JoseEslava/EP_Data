@@ -18,7 +18,7 @@ map_entidad_federativa = np.array([
     'Colima',
     'Chiapas',
     'Chihuahua',
-    'Distrito Federal',
+    'Ciudad de México',
     'Durango',
     'Guanajuato',
     'Guerrero',
@@ -153,59 +153,118 @@ model2= pickle.load(open("rf_model","rb"))
 models = st.sidebar.selectbox("Selecciona el modelo",("Random Forest | Abuso de autoridad","XGBoost | Abuso sexual") )
 
 # Create a sidebar for user input
-st.sidebar.title("Abuso de Autoridad y Abuso Sexual")
+st.sidebar.title("Abuso de Autoridad")
+st.sidebar.title("Abuso Sexual")
 st.sidebar.markdown("Escribe aquí tus preferencias:")
 
 entidad = st.sidebar.selectbox("Entidad federativa", map_entidad_federativa)
 organismo = st.sidebar.selectbox("Organismo de poder", map_organismo_poder)
 funcion = st.sidebar.selectbox("Función de la institución", map_funcion_inst)
-nivelSalarial = st.sidebar.selectbox("Nivel salarial", map_nivel_salarial)
+nivelSalarial = st.sidebar.selectbox("Nivel salarial (1-Max 10-Min)", map_nivel_salarial)
 genero = st.sidebar.selectbox("Género", map_genero)
 
 if models == "Random Forest | Abuso de autoridad":
+    autoridad = st.sidebar.selectbox("Autoridad Sancionadora", map_autoridad_sancionadora)
+    
     entidad_ = np.where(map_entidad_federativa == entidad)[0][0]
     genero_ = np.where(map_genero == genero)[0][0]
     nivelSalarial_ = np.where(map_nivel_salarial == nivelSalarial)[0][0]
+    autoridad_ = np.where(map_autoridad_sancionadora == autoridad)[0][0]
     organismo_ = np.where(map_organismo_poder == organismo)[0][0]
-    funcion_ = np.where(funcion == funcion)[0][0]
+    funcion_ = np.where(map_funcion_inst == funcion)[0][0]
 
-    caso_rfc = np.array([[entidad_+1, genero_, nivelSalarial_+1, organismo_+1, 1, funcion_+1]])
+    caso_rfc = np.array([[funcion_+1, entidad_+1, nivelSalarial_+1, autoridad_+1, organismo_+1, genero_]])
+    print(funcion_+1, entidad_+1, nivelSalarial_+1, autoridad_+1, organismo_+1, genero_)
 
     prediccion = model2.predict(caso_rfc)
     probabilidad_abuso_autoridad = model2.predict_proba(caso_rfc)[0, 1]  # Probabilidad de default (clase 1)
 
+    # Ciclo para obtener la probabilidad de abuso de autoridad por estado
+    probabilid_edos = []
+    for i in range(1, 33):
+        caso_estado = np.array([[funcion_+1, i, nivelSalarial_+1, autoridad_+1, organismo_+1, genero_]])
+        probabilidad_abuso_estado = model2.predict_proba(caso_estado)[0, 1]
+
+        # Almacenar resultado
+        probabilid_edos.append({
+            "CVE_ENT": i,
+            "Metrica": probabilidad_abuso_estado
+        })
+
+    df_edos_abuso = pd.DataFrame(probabilid_edos)
+    df_edos_abuso.insert(loc=1, column='entidad_federativa', value=map_entidad_federativa)
+
     if prediccion[0] == 1:
-        st.success("El modelo predice que el servidor público realiza algún tipo de Abuso de autoridad")
+        st.error("El modelo Random Forest predice que el servidor público realiza algún tipo de Abuso de autoridad")
     else:
-        st.success("El modelo predice que el servidor público no realizará algún tipo de Abuso de autoridad")
+        st.warning("El modelo Random Forest predice que el servidor público podría realizar algún tipo de Abuso de autoridad")
     
-    st.write(f"La probabilidad de que el servidor público realice un tipo de abuso de autoridad es: {probabilidad_abuso_autoridad:.2f}")
+    if probabilidad_abuso_autoridad > 0.5:
+        st.error(f"La probabilidad de que un servidor público realice algún tipo de abuso de autoridad: {probabilidad_abuso_autoridad:.2f}")
+    else:
+        st.warning(f"La probabilidad de que un servidor público realice algún tipo de abuso de autoridad: {probabilidad_abuso_autoridad:.2f}")
 else :
     entidad_ = np.where(map_entidad_federativa == entidad)[0][0]
     genero_ = np.where(map_genero == genero)[0][0]
     nivelSalarial_ = np.where(map_nivel_salarial == nivelSalarial)[0][0]
     organismo_ = np.where(map_organismo_poder == organismo)[0][0]
-    funcion_ = np.where(funcion == funcion)[0][0]
+    funcion_ = np.where(map_funcion_inst == funcion)[0][0]
 
     print(entidad_+1, genero_, nivelSalarial_+1, organismo_+1, 1, funcion_+1)
 
     XGB_abuso = np.array([[entidad_+1, genero_, nivelSalarial_+1, organismo_+1, 1, funcion_+1]])  # Entrada de datos al modelo
 
-    # 3. Convertir el caso a formato DMatrix
+    #Convertir el caso a formato DMatrix
     dcase = xgb.DMatrix(data=XGB_abuso)
 
-    # 4. Realizar la predicción
+    #Realizar la predicción
     prediccion_prob = model1.predict(dcase)[0]  # Probabilidad para la clase 1
     prediccion = 1 if prediccion_prob > 0.5 else 0  # Convertir probabilidad a clase
 
-    # 5. Mostrar los resultados
-    if prediccion == 1:
-        st.success("El modelo predice que el servidor público realizará abuso sexual")
-    else:
-        st.success("El modelo predice que el servidor público no realizará abuso sexual")
-    
-    st.write(f"La probabilidad de que el servidor público realice abuso sexual: {prediccion_prob:.2f}")
+    probabilid_edos = []
+    for i in range(1, 33):
+        # Convertir el caso actual a formato DMatrix
+        caso_xgb = xgb.DMatrix(np.array([[i, genero_, nivelSalarial_+1, organismo_+1, 1, funcion_+1]]))
 
-# Filter the movies based on the user input
+        # Obtener la probabilidad de la clase positiva (configuración de `predict` con Booster)
+        probabilidad_abuso_estado = model1.predict(caso_xgb)[0]  # Booster predice directamente probabilidades
+
+        # Almacenar resultado en la lista
+        probabilid_edos.append({
+            "CVE_ENT": i,  # El primer valor representa la entidad federativa
+            "Metrica": probabilidad_abuso_estado
+        })
+
+    # Convertir los resultados a un DataFrame
+    df_edos_abuso = pd.DataFrame(probabilid_edos)
+    df_edos_abuso.insert(loc=1, column='entidad_federativa', value=map_entidad_federativa)
+
+    #Mostrar los resultados
+    if prediccion == 1:
+        st.error("El modelo XGBoost predice que el servidor público realizará abuso sexual")
+    else:
+        st.warning("El modelo XGBoost predice que el servidor público podría realizar abuso sexual")
+    
+    if prediccion_prob > 0.5:
+        st.error(f"La probabilidad de que el servidor público realice abuso sexual: {prediccion_prob:.2f}")
+    else:
+        st.warning(f"La probabilidad de que el servidor público realice abuso sexual: {prediccion_prob:.2f}")
+
+# Unir datos al GeoDataFrame
+gdf = pd.read_csv("mexico_geolocalizacion.csv")
+gdf = gdf.merge(df_edos_abuso, left_on="entidad_federativa", right_on="entidad_federativa", how="left")
+
+# Crear colores basados en la métrica
+def get_color(value):
+    if value < 0.50:
+        return "#008f39"
+    elif value < 0.80:
+        return "#ffff00"
+    else:
+        return "#ff0000"
+
+gdf["color"] = gdf["Metrica"].apply(get_color)
+
+st.map(gdf, latitude="latitud", longitude="longitud", size=100, color="color")
 df_filtered = df_intel[df_intel['CVE_ENT'] == entidad_+1]
 st.write(df_filtered)

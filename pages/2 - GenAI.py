@@ -1,8 +1,5 @@
 import streamlit as st
 import numpy as np
-import os
-
-from dotenv import load_dotenv
 
 from langchain.chains import RetrievalQA
 from langchain.document_loaders.csv_loader import CSVLoader
@@ -10,8 +7,6 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.vectorstores import DocArrayInMemorySearch
 from langchain.prompts import PromptTemplate
-
-load_dotenv()
 
 st.set_page_config(page_title="EPData GenAI", page_icon="bar-chart")
 st.header('Analítica aplicando Inteligencia Artificial Generativa')
@@ -25,7 +20,7 @@ map_entidad_federativa = np.array([
     'Colima',
     'Chiapas',
     'Chihuahua',
-    'Distrito Federal',
+    'Ciudad de México',
     'Durango',
     'Guanajuato',
     'Guerrero',
@@ -75,7 +70,7 @@ data = loader.load()
 
 text_splitter = CharacterTextSplitter(separator='\n')
 splits = text_splitter.split_documents(data)
-embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
+embeddings = OpenAIEmbeddings(openai_api_key = st.secrets["OpenAI_key"])
 vectordb = DocArrayInMemorySearch.from_documents(splits, embeddings)
 retriever = vectordb.as_retriever(search_type="mmr", search_kwargs={"k": 2, "fetch_k": 4})
 
@@ -99,7 +94,7 @@ COMBINED_PROMPT = template_prefix +'\n'+ info_ +'\n'+ template_suffix
 llm = ChatOpenAI(
     model="gpt-4",
     temperature=0,
-    openai_api_key=os.getenv("OPENAI_API_KEY")
+    openai_api_key = st.secrets["OpenAI_key"]
 )
 
 PROMPT = PromptTemplate(
