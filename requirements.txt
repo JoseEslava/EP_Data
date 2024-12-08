@@ -1,4 +1,4 @@
-langchain[docarray]==0.0.284
+langchain[docarray]
 docarray
 google-cloud-aiplatform
 google-generativeai
