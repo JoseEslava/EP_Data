@@ -1,10 +1,7 @@
 streamlit
-pickle
 pandas
 numpy
 xgboost
-os
-dotenv
 RetrievalQA
 CSVLoader
 CharacterTextSplitter
