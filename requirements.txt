@@ -2,7 +2,6 @@ streamlit
 pandas
 numpy
 xgboost
-os
 dotenv
 RetrievalQA
 CSVLoader
