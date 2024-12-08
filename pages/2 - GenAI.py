@@ -11,8 +11,6 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.vectorstores import DocArrayInMemorySearch
 from langchain.prompts import PromptTemplate
 
-load_dotenv()
-
 st.set_page_config(page_title="EPData GenAI", page_icon="bar-chart")
 st.header('Analítica aplicando Inteligencia Artificial Generativa')
 
