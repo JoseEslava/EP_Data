@@ -8,11 +8,11 @@ gpt4all>=1.0.6
 huggingface-hub>=0.14.1
 langchain
 langchain-community
-langchain_decorators>=0.2.3
-langchain-experimental==0.0.25
+langchain_decorators
+langchain-experimental
 langchain-openai
 langchain-text-splitters
-langsmith==0.0.65
+langsmith
 langchainhub
 numpy
 pandas
