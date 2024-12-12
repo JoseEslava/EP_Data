@@ -1,7 +1,7 @@
 jupyter>=1.0.0
 jupyterlab
-langchain[docarray]==0.0.284
 docarray
+langchain[docarray]
 google-cloud-aiplatform>=1.26.0
 google-generativeai
 gpt4all>=1.0.6
